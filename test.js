@@ -31,7 +31,7 @@ describe("IronStore", function() {
       });
 
       afterEach(function(done) {
-        // consumer.stop();
+        consumer.stop();
         done();
       });
 

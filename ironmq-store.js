@@ -18,22 +18,6 @@ function IronSource(opts) {
 
 IronSource.prototype._read = function() {
   this.__queue.resume();
-  // console.log("READING!");
-  // this.__queue.resume();
-  // console.log("JOBS", this.jobs.length);
-  // if(this.jobs.length) {
-  //   //push each entry in jobs
-  //   var ctr = 0;
-  //   for(d in this.jobs) {
-  //     if(!(this.push(d) && ctr++)) {
-  //       //tell queue to pause.
-  //       this.__queue.pause();
-  //       //remove already pushed jobs from our jobs length
-  //       return this.jobs = this.jobs.slice(ctr);
-  //     }
-  //   }
-  //   this.jobs = this.jobs.slice(ctr);
-  // }
 };
 
 IronSource.prototype._write = function(job) {

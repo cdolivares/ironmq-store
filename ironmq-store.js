@@ -1,6 +1,8 @@
 var IronMQ  = require("iron_mq");
 var Stream  = require("stream");
 var util    = require("util");
+var _       = require("lodash");
+var EventEmitter = require("events").EventEmitter;
 
 function IronSource(opts) {
   if(!this instanceof IronSource) {
@@ -26,7 +28,7 @@ function IronSource(opts) {
       var ctr = 0;
       for(d in me.jobs) {
         if(!(this.push(d) && ctr++)) {
-          //tell all queues to pause.
+          //tell queue to pause.
           me.__queue.pause();
           //remove already pushed jobs from our jobs length
           return me.jobs = me.jobs.slice(ctr);
@@ -36,30 +38,52 @@ function IronSource(opts) {
     }
   };
 
+  IronSource.prototype.start = function() {
+    if(this.__queue) {
+      this.__queue.resume();
+    } else {}
+  }
+
 
   function Queue(source, queueOpts) {
-    this.__ironQueue = source.MQ.queue(queueOpts.name);
+    this.__ironQueue = queueOpts.use ? queueOpts.use : source.MQ.queue(queueOpts.name);
     this.__source = source;
     this.__opts = queueOpts;
+    EventEmitter.call(this);
   }
 
   Queue.prototype.resume = function() {
     var me = this;
-    setInterval(function() {
-      me.__ironQueue.get({}, function(error, messages) {
-        if(error) return me.emit("error", error);
-        if(!messages) return;
-        messages = _.isArray(messages) ? messages : [messages]; 
-        me.__source.jobs.concat(messages);
-    }, this.__opts.checkEvery);
+    if(!this.__interval) {
+      this.__interval = setInterval(function() {
+        me.__ironQueue.get({}, function(error, messages) {
+          if(error) return me.emit("error", error);
+          if(!messages) return;
+          messages = _.isArray(messages) ? messages : [messages]; 
+          me.__source.jobs.concat(messages);
+          //is there
+          if(!_.isEmpty(me.__source.listeners("iron-data"))) me.__source.emit("iron-data", messages);
+        });
+      }, this.__opts.checkEvery);
+    }
   };
 
-  Queue.prototype.pause = function() {};
+  Queue.prototype.pause = function() {
+    if(this.__interval) {
+      clearInterval(this.__interval);
+      this.__interval = null;
+    }
+  };
 }
 
 
 
-function IronStore() {}
+function IronStore(opts) {
+  if(!this instanceof IronStore) {
+    return new IronStore(opts);
+  }
+
+}
 
 util.inherits(IronSource, Stream.Duplex);
 util.inherits(IronStore, Stream.Duplex);

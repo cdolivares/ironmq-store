@@ -6,7 +6,8 @@
   "engine": "node 0.10.0",
   "main": "./index.js",
   "dependencies": {
-    "iron_mq": "0.2.0"
+    "iron_mq": "0.2.0",
+    "lodash": "2.4.1"
   },
   "devDependencies": {
     "expect.js": "0.2.0",

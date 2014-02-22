@@ -7,8 +7,18 @@ var EventEmitter = require("events").EventEmitter;
 util.inherits(IronSource, Stream.Duplex);
 util.inherits(IronStore, Stream.Duplex);
 
+
+/*
+  @param opts {Object}
+    opts.projectId {String}
+    opts.projectToken {String}
+    opts.queue {Object}
+      opts.queue.name {String}
+      opts.queue.checkEvery {Number} in ms.
+      opts.queue.maxMessagesPerEvent {Number}
+*/
 function IronSource(opts) {
-  Stream.Duplex.call(this);
+  Stream.Duplex.call(this, {objectMode: true, decodeStrings: false});
   this.MQ = new IronMQ.Client({
     project_id: opts.projectId,
     token: opts.projectToken
@@ -20,8 +30,9 @@ IronSource.prototype._read = function() {
   this.__queue.resume();
 };
 
-IronSource.prototype._write = function(job) {
+IronSource.prototype._write = function(job, enc, next) {
   job.success ? this.__queue.del(job) : this.__queue.release(job);
+  next();
 };
 
 IronSource.prototype.start = function() {
@@ -47,11 +58,11 @@ Queue.prototype.resume = function() {
   var me = this;
   if(!this.__interval) {
     this.__interval = setInterval(function() {
-      me.__ironQueue.get({}, function(error, messages) {
+      me.__ironQueue.get({n: me.__opts.maxMessagesPerEvent}, function(error, messages) {
         if(error) return me.emit("error", error);
         if(!messages) return;
         messages = _.isArray(messages) ? messages : [messages]; 
-        if(!me.__source.push(JSON.stringify({payload: messages}))) me.pause();
+        if(!me.__source.push(messages)) me.pause();
         if(!_.isEmpty(me.__source.listeners("iron-data"))) me.__source.emit("iron-data", messages);
       });
     }, this.__opts.checkEvery);
@@ -74,5 +85,6 @@ function IronStore(opts) {
 
 }
 
-exports.Source = IronSource;
-exports.Store = IronStore;
+exports.Source    = IronSource;
+exports.Store     = IronStore;
+exports.Transform = require("./transform");

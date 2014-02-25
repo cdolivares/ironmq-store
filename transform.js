@@ -52,10 +52,10 @@ module.exports = function(options) {
     next();
   };
   options.onError = options.onError || function(error) {
-    console.error("--------------")
+    console.error("--------------");
     console.error(error.message);
     console.error(JSON.stringify(error.job, null, 4));
-    console.error("--------------")
+    console.error("--------------");
   };
   transform.on("error", options.onError);
   return transform;

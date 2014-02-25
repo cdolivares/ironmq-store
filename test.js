@@ -1,6 +1,6 @@
-var IronSource = require("./ironmq-store").Source;
+var IronSource = require("./").Source;
 var IronClientStub = require("./stub").Client;
-var JobTransform = require("./ironmq-store").Transform;
+var JobTransform = require("./").Transform;
 var expect = require('expect.js');
 var stream = require("stream");
 var equal = require("deep-equal");
@@ -27,7 +27,7 @@ describe("IronStore", function() {
         }
       ];
       queue.setMessages(messages);
-      consumer = new IronSource({
+      consumer = IronSource({
         project_id: "someProject",
         token: "someToken",
         queue: {

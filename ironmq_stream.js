@@ -1,6 +1,7 @@
 var IronMQ  = require("iron_mq");
 var Stream  = require("stream");
 var util    = require("util");
+var Transform = require("./transform");
 var _       = require("lodash");
 var EventEmitter = require("events").EventEmitter;
 
@@ -84,7 +85,5 @@ function IronStore(opts) {
   }
 
 }
-
-exports.Source    = IronSource;
-exports.Store     = IronStore;
-exports.Transform = require("./transform");
+exports.Source = IronSource;
+exports.Store = IronStore;

@@ -1,6 +1,8 @@
 var Transform = require("./transform");
 var IronMQ    = require("./ironmq_stream");
 var core      = require("./core");
+var PostProcessor = require("./postProcessor");
+
 /*
   Source:
 
@@ -17,7 +19,7 @@ var core      = require("./core");
 exports.Source = function(options) {
   options = options || {};
   var source = new IronMQ.Source(options);
-  return core.prepareComponent(source);
+  return core.prepareComponent(options, source);
 };
 
 /*
@@ -36,7 +38,7 @@ exports.Source = function(options) {
 exports.Store = function(options) {
   options = options || {};
   var store = new IronMQ.Store(options);
-  return core.prepareComponent(store);
+  return core.prepareComponent(options, store);
 };
 
 /*
@@ -49,5 +51,11 @@ exports.Store = function(options) {
 exports.Transform = function(options) {
   options = options || {};
   var transform = new Transform(options);
-  return core.prepareComponent(transform);
+  return core.prepareComponent(options, transform);
+};
+
+exports.PostProcessor = function(options) {
+  options = options || {};
+  var postProcessor = new PostProcessor(options);
+  return core.prepareComponent(options, postProcessor);
 };

@@ -154,7 +154,7 @@ Queue.prototype.del = function(id, cb) {
   if(_findAndRemove(id, this.messages, this.outstandingMessages)) {
     cb(null, {msg: "Deleted"});
   } else {
-    error = new Error("The message is not in the queue. It's likely that your job took longer than #{RELEASE_TIMEOUT} to run");
+    error = new Error("The message is not in the queue. It's likely that your job took longer than " + RELEASE_TIMEOUT + " ms to run");
     cb(error);
   }
 }
@@ -251,6 +251,17 @@ var _popMessage = function(queue) {
 var inc = 0;
 var _pushMessage = function(queue, message) {
   var BaseId, random, id;
+  if(message.body && message.body.$id) {
+    //use $id client defined on message
+    id = message.body.$id;
+    delete message.body.$id;
+  } else {
+    //generate baseId
+    BaseId = "5940635112690500000";
+    random = String(inc);
+    BaseId = BaseId.slice(0, BaseId.length - random.length - 1)
+    id = BaseId + random; //if user sets id use that.
+  }
   if (_.isObject(message)) {
     //must have body: param.
     if (message.body) {
@@ -267,10 +278,6 @@ var _pushMessage = function(queue, message) {
     reserved_count: 3,
     push_status: {}
   };
-  BaseId = "5940635112690500000";
-  random = String(inc);
-  BaseId = BaseId.slice(0, BaseId.length - random.length - 1)
-  id = BaseId + random;
   queue.messages.push(_.extend(defaultResponse, {id: id, body: message}));
   inc++;
 }

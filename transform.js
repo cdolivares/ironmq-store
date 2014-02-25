@@ -1,12 +1,7 @@
 var Transform = require("stream").Transform;
 
 /*
-  Transormer
-
-  @param options {Object}
-    - onError {Function} - Passed an error object when there
-      was something wrong with transformation. Default is a log
-      to console.error.
+  Transformer
 */
 
 module.exports = function(options) {
@@ -51,9 +46,6 @@ module.exports = function(options) {
     this.push(body);
     next();
   };
-  if(options.onError) {
-    transform.on("error", options.onError);
-  }
   return transform;
 };
 

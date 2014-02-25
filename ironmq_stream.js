@@ -20,11 +20,7 @@ util.inherits(IronStore, Stream.Duplex);
 */
 function IronSource(opts) {
   Stream.Duplex.call(this, {objectMode: true, decodeStrings: false});
-  this.MQ = new IronMQ.Client({
-    project_id: opts.projectId,
-    token: opts.projectToken
-  });
-  this.__queue = new Queue(this, opts.queue);
+  this.__queue = new Queue(this, opts);
 }
 
 IronSource.prototype._read = function() {
@@ -48,10 +44,18 @@ IronSource.prototype.stop = function() {
   } else {}
 };
 
-function Queue(source, queueOpts) {
-  this.__ironQueue = queueOpts.use ? queueOpts.use : source.MQ.queue(queueOpts.name);
+function Queue(source, opts) {
+  if(opts.queue.use) {
+    this.__ironQueue = opts.queue.use;
+  } else {
+    var MQ = new IronMQ.Client({
+      project_id: opts.projectId,
+      token: opts.projectToken
+    });
+    this.__ironQueue = MQ.queue(opts.queue.name);
+  }
   this.__source = source;
-  this.__opts = queueOpts;
+  this.__opts = opts;
   EventEmitter.call(this);
 }
 
@@ -59,14 +63,14 @@ Queue.prototype.resume = function() {
   var me = this;
   if(!this.__interval) {
     this.__interval = setInterval(function() {
-      me.__ironQueue.get({n: me.__opts.maxMessagesPerEvent}, function(error, messages) {
+      me.__ironQueue.get({n: me.__opts.queue.maxMessagesPerEvent}, function(error, messages) {
         if(error) return me.emit("error", error);
         if(!messages) return;
         messages = _.isArray(messages) ? messages : [messages]; 
         if(!me.__source.push(messages)) me.pause();
         if(!_.isEmpty(me.__source.listeners("iron-data"))) me.__source.emit("iron-data", messages);
       });
-    }, this.__opts.checkEvery);
+    }, this.__opts.queue.checkEvery);
   }
 };
 

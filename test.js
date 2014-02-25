@@ -1,6 +1,7 @@
 var IronSource = require("./").Source;
-var IronClientStub = require("./stub").Client;
 var JobTransform = require("./").Transform;
+var PostProcessor = require("./").PostProcessor;
+var IronClientStub = require("./stub").Client;
 var expect = require('expect.js');
 var stream = require("stream");
 var equal = require("deep-equal");
@@ -28,8 +29,8 @@ describe("IronStore", function() {
       ];
       queue.setMessages(messages);
       consumer = IronSource({
-        project_id: "someProject",
-        token: "someToken",
+        projectId: "someProject",
+        projectToken: "someToken",
         queue: {
           checkEvery: 1000,
           maxMessagesPerEvent: 2,
@@ -64,7 +65,7 @@ describe("IronStore", function() {
     });
 
     it("should properly pipe data through to a writable stream", function(done) {
-      var writable = stream.Writable({objectMode: true});
+      var writable = stream.Writable({objectMode: true, decodeStrings: false});
       writable._write = function(data, enc, next) {
         expect(data).to.be.an(Object);
         consumer.unpipe(writable);
@@ -74,7 +75,7 @@ describe("IronStore", function() {
     });
 
     it("should return at most the specified number of messages in `opts.maxMessagesPerEvent`", function(done) {
-      var writable = stream.Writable({objectMode: true});
+      var writable = stream.Writable({objectMode: true, decodeStrings: false});
       writable._write = function(data, enc, next) {
         expect(data).to.be.an(Array);
         expect(data).to.have.length(2); //testing stub always returns the specified number.
@@ -170,9 +171,72 @@ describe("Transform", function() {
 });
 
 describe("postProcessor", function() {
-  
+  var queue;
+  var job = {
+    id: "122334",
+    service: "testService",
+    payload: "testPayload"
+  };
+
+  beforeEach(function(done) {
+    var stub = new IronClientStub({project_id: "someProject", token: "someToken"});
+    queue = stub.queue("test");
+    queue.setMessages([
+      {
+        body: {
+          $id: "122334",
+          service: "testService",
+          payload: "testPayload"
+        } //$id so the queue stub takes the value of our id
+      }
+    ]);
+    done();
+  });
+
+  it("should error if the job does not have an id", function(done) {
+    var readable = stream.Readable({objectMode: true});
+    readable._read = function() {
+      this.push(_.omit(job, "id"));
+      this.push(null);
+    };
+    var postProcessor = PostProcessor({
+      projectId: "someProject",
+      projectToken: "someToken",
+      queue: {
+        name: "test",
+        use: queue
+      },
+      onError: function(err) {
+        expect(err.message).to.contain("Unrecognized");
+        readable.unpipe(postProcessor);
+        return done();
+      }
+    });
+    readable.pipe(postProcessor);
+
+  });
+
+  it("should successfully delete a job from the queue", function(done) {
+    var readable = stream.Readable({objectMode: true});
+    readable._read = function() {
+      this.push(job);
+      this.push(null);
+    };
+    var postProcessor = PostProcessor({
+      projectId: "someProject",
+      projectToken: "someToken",
+      queue: {
+        name: "test",
+        use: queue
+      }
+    });
+    var writable = stream.Writable({objectMode: true, decodeStrings: false});
+    writable._write = function(obj, enc, next) {
+      expect(equal(obj, job)).to.be(true);
+      readable.unpipe(postProcessor);
+      postProcessor.unpipe(writable);
+      return done();
+    };
+    readable.pipe(postProcessor).pipe(writable);
+  });
 });
-
-
-
-

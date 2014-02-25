@@ -51,13 +51,9 @@ module.exports = function(options) {
     this.push(body);
     next();
   };
-  options.onError = options.onError || function(error) {
-    console.error("--------------");
-    console.error(error.message);
-    console.error(JSON.stringify(error.job, null, 4));
-    console.error("--------------");
-  };
-  transform.on("error", options.onError);
+  if(options.onError) {
+    transform.on("error", options.onError);
+  }
   return transform;
 };
 
